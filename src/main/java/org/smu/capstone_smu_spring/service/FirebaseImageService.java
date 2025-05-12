@@ -26,9 +26,19 @@ public class FirebaseImageService {
         try {
             logger.info("📝 이미지 압축 후 Firestore 저장 - 닉네임: {}, 원본 파일명: {}", nickname, file.getOriginalFilename());
 
-            // ✅ 1. 이미지 리사이징
-            BufferedImage originalImage = ImageIO.read(file.getInputStream());
+            // ✅ Firestore 인스턴스
+            Firestore db = FirestoreClient.getFirestore();
+            CollectionReference imagesRef = db.collection("users").document(nickname).collection("images");
 
+            // ✅ 1. 기존 문서 삭제 (모든 이미지 삭제)
+            ApiFuture<QuerySnapshot> query = imagesRef.get();
+            for (DocumentSnapshot doc : query.get().getDocuments()) {
+                doc.getReference().delete();
+                logger.info("🗑️ 기존 이미지 삭제됨: {}", doc.getId());
+            }
+
+            // ✅ 2. 이미지 리사이징
+            BufferedImage originalImage = ImageIO.read(file.getInputStream());
             int targetWidth = 640;
             int targetHeight = 480;
 
@@ -38,18 +48,14 @@ public class FirebaseImageService {
             g2d.drawImage(resized, 0, 0, null);
             g2d.dispose();
 
-            // ✅ 2. JPEG로 압축 후 Base64 인코딩
+            // ✅ 3. JPEG 압축 + Base64 인코딩
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(outputImage, "jpg", baos);
             byte[] compressedBytes = baos.toByteArray();
             String base64Image = Base64.getEncoder().encodeToString(compressedBytes);
 
-            // ✅ 3. Firestore 저장
-            Firestore db = FirestoreClient.getFirestore();
-            DocumentReference docRef = db.collection("users")
-                    .document(nickname)
-                    .collection("images")
-                    .document(); // 자동 ID
+            // ✅ 4. 새 이미지 저장 (문서 ID는 고정적으로 'latest' 사용해도 무방)
+            DocumentReference docRef = imagesRef.document("latest");
 
             Map<String, Object> data = new HashMap<>();
             data.put("image", base64Image);
