@@ -18,32 +18,40 @@ import java.util.UUID;
 @Service
 public class FirebaseImageService {
 
-    // ✅ 이미지 업로드 후 Firebase Storage URL 반환
+    // ✅ Firebase Storage 업로드
     public String uploadImage(MultipartFile file) {
         try {
+            System.out.println("⏫ FirebaseImageService.uploadImage() 호출됨");
+
             String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
             InputStream content = file.getInputStream();
 
-            // Firebase Storage에 업로드
+            System.out.println("📂 Firebase Storage 업로드 시작 - 파일명: " + fileName + ", 크기: " + file.getSize() + " bytes");
+
+            // Storage 업로드
             StorageClient.getInstance().bucket().create(fileName, content, file.getContentType());
 
-            // Firebase Storage 다운로드 URL 생성
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
             String imageUrl = String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media",
                     StorageClient.getInstance().bucket().getName(),
                     encodedFileName);
 
+            System.out.println("✅ Firebase Storage 업로드 성공 - URL: " + imageUrl);
             return imageUrl;
+
         } catch (Exception e) {
+            System.err.println("❌ Firebase Storage 업로드 실패:");
             e.printStackTrace();
-            return null;
+            throw new RuntimeException("Firebase Storage 업로드 실패", e);
         }
     }
 
-    // ✅ Cloud Firestore에 사용자별 이미지 URL 저장
+    // ✅ Firestore 저장
     public void saveImageToFirestore(String nickname, String imageUrl) {
         try {
-            Firestore db = FirestoreClient.getFirestore(); // ← 권장 방식
+            System.out.println("📝 Firestore 저장 호출됨 - 닉네임: " + nickname + ", 이미지 URL: " + imageUrl);
+
+            Firestore db = FirestoreClient.getFirestore();
 
             DocumentReference docRef = db.collection("users")
                     .document(nickname)
@@ -55,10 +63,13 @@ public class FirebaseImageService {
             data.put("timestamp", Timestamp.now());
 
             ApiFuture<WriteResult> result = docRef.set(data);
-            result.get(); // optional: blocking, wait for write result
+            WriteResult writeResult = result.get(); // 블로킹 (옵션)
+            System.out.println("✅ Firestore 저장 성공 - 시간: " + writeResult.getUpdateTime());
 
         } catch (Exception e) {
+            System.err.println("❌ Firestore 저장 실패:");
             e.printStackTrace();
+            throw new RuntimeException("Firestore 저장 실패", e);
         }
     }
 }

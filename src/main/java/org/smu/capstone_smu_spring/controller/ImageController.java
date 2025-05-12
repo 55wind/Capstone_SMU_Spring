@@ -17,12 +17,25 @@ public class ImageController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("nickname") String nickname) {
 
-        // 이미지 업로드 → URL 생성
-        String imageUrl = firebaseImageService.uploadImage(file);
+        System.out.println("📥 [UPLOAD] /api/upload 요청 수신됨");
+        System.out.println("👤 nickname: " + nickname);
+        System.out.println("🖼️ file: " + file.getOriginalFilename() + " (" + file.getSize() + " bytes)");
 
-        // Firestore 저장
-        firebaseImageService.saveImageToFirestore(nickname, imageUrl);
+        try {
+            // 이미지 업로드 → URL 생성
+            String imageUrl = firebaseImageService.uploadImage(file);
+            System.out.println("✅ Firebase 업로드 성공: " + imageUrl);
 
-        return imageUrl;
+            // Firestore 저장
+            firebaseImageService.saveImageToFirestore(nickname, imageUrl);
+            System.out.println("✅ Firestore 저장 완료 for nickname: " + nickname);
+
+            return imageUrl;
+
+        } catch (Exception e) {
+            System.err.println("❌ 업로드 처리 중 예외 발생:");
+            e.printStackTrace();
+            return "업로드 실패: " + e.getMessage();
+        }
     }
 }
