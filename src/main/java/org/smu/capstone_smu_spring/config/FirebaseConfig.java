@@ -54,6 +54,7 @@ public class FirebaseConfig {
             // ✅ Firebase 초기화
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                    .setStorageBucket("your-bucket-name.appspot.com") // ✅ 여기에 버킷 이름 추가!
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {
