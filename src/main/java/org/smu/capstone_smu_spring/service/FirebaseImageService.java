@@ -5,6 +5,8 @@ import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.cloud.StorageClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,15 +20,17 @@ import java.util.UUID;
 @Service
 public class FirebaseImageService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FirebaseImageService.class);
+
     // ✅ Firebase Storage 업로드
     public String uploadImage(MultipartFile file) {
         try {
-            System.out.println("⏫ FirebaseImageService.uploadImage() 호출됨");
+            logger.info("⏫ FirebaseImageService.uploadImage() 호출됨");
 
             String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
             InputStream content = file.getInputStream();
 
-            System.out.println("📂 Firebase Storage 업로드 시작 - 파일명: " + fileName + ", 크기: " + file.getSize() + " bytes");
+            logger.info("📂 Firebase Storage 업로드 시작 - 파일명: {}, 크기: {} bytes", fileName, file.getSize());
 
             // Storage 업로드
             StorageClient.getInstance().bucket().create(fileName, content, file.getContentType());
@@ -36,12 +40,11 @@ public class FirebaseImageService {
                     StorageClient.getInstance().bucket().getName(),
                     encodedFileName);
 
-            System.out.println("✅ Firebase Storage 업로드 성공 - URL: " + imageUrl);
+            logger.info("✅ Firebase Storage 업로드 성공 - URL: {}", imageUrl);
             return imageUrl;
 
         } catch (Exception e) {
-            System.err.println("❌ Firebase Storage 업로드 실패:");
-            e.printStackTrace();
+            logger.error("❌ Firebase Storage 업로드 실패", e);
             throw new RuntimeException("Firebase Storage 업로드 실패", e);
         }
     }
@@ -49,7 +52,7 @@ public class FirebaseImageService {
     // ✅ Firestore 저장
     public void saveImageToFirestore(String nickname, String imageUrl) {
         try {
-            System.out.println("📝 Firestore 저장 호출됨 - 닉네임: " + nickname + ", 이미지 URL: " + imageUrl);
+            logger.info("📝 Firestore 저장 호출됨 - 닉네임: {}, 이미지 URL: {}", nickname, imageUrl);
 
             Firestore db = FirestoreClient.getFirestore();
 
@@ -64,11 +67,10 @@ public class FirebaseImageService {
 
             ApiFuture<WriteResult> result = docRef.set(data);
             WriteResult writeResult = result.get(); // 블로킹 (옵션)
-            System.out.println("✅ Firestore 저장 성공 - 시간: " + writeResult.getUpdateTime());
+            logger.info("✅ Firestore 저장 성공 - 시간: {}", writeResult.getUpdateTime());
 
         } catch (Exception e) {
-            System.err.println("❌ Firestore 저장 실패:");
-            e.printStackTrace();
+            logger.error("❌ Firestore 저장 실패", e);
             throw new RuntimeException("Firestore 저장 실패", e);
         }
     }
