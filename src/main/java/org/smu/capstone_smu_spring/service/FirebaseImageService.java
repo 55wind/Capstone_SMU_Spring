@@ -9,6 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,27 +22,41 @@ public class FirebaseImageService {
 
     private static final Logger logger = LoggerFactory.getLogger(FirebaseImageService.class);
 
-    // ✅ Base64로 인코딩 후 Firestore 저장
     public void saveImageToFirestore(String nickname, MultipartFile file) {
         try {
-            logger.info("📝 Firestore 저장 호출됨 - 닉네임: {}, 파일명: {}", nickname, file.getOriginalFilename());
+            logger.info("📝 이미지 압축 후 Firestore 저장 - 닉네임: {}, 원본 파일명: {}", nickname, file.getOriginalFilename());
 
-            byte[] imageBytes = file.getBytes();
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            // ✅ 1. 이미지 리사이징
+            BufferedImage originalImage = ImageIO.read(file.getInputStream());
 
+            int targetWidth = 640;
+            int targetHeight = 480;
+
+            Image resized = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = outputImage.createGraphics();
+            g2d.drawImage(resized, 0, 0, null);
+            g2d.dispose();
+
+            // ✅ 2. JPEG로 압축 후 Base64 인코딩
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(outputImage, "jpg", baos);
+            byte[] compressedBytes = baos.toByteArray();
+            String base64Image = Base64.getEncoder().encodeToString(compressedBytes);
+
+            // ✅ 3. Firestore 저장
             Firestore db = FirestoreClient.getFirestore();
-
             DocumentReference docRef = db.collection("users")
                     .document(nickname)
                     .collection("images")
-                    .document(); // 자동 생성 문서 ID
+                    .document(); // 자동 ID
 
             Map<String, Object> data = new HashMap<>();
             data.put("image", base64Image);
             data.put("timestamp", Timestamp.now());
 
             ApiFuture<WriteResult> result = docRef.set(data);
-            logger.info("✅ Firestore 저장 성공 - 시간: {}", result.get().getUpdateTime());
+            logger.info("✅ Firestore 저장 완료 - 시간: {}", result.get().getUpdateTime());
 
         } catch (Exception e) {
             logger.error("❌ Firestore 저장 실패", e);
