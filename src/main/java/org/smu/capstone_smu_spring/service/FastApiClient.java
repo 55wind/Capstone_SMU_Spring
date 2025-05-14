@@ -23,7 +23,7 @@ public class FastApiClient {
 
         LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
-        body.add("nickname", nickname);
+        body.add("name", nickname);
 
         HttpEntity<LinkedMultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
 
