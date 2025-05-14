@@ -15,7 +15,7 @@ import java.io.InputStream;
 public class FastApiClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String fastApiUrl = "http://<EC2_IP>:8000/predict"; // <-- EC2 주소로 바꾸기
+    private final String fastApiUrl = "http://13.238.218.99:8000/predict"; // <-- EC2 주소로 바꾸기
 
     public FastApiResponse sendToFastApi(String nickname, MultipartFile file) throws IOException {
         HttpHeaders headers = new HttpHeaders();
