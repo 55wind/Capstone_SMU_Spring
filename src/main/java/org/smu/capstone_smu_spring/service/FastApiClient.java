@@ -5,9 +5,10 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 
 @Service
 public class FastApiClient {
@@ -19,22 +20,24 @@ public class FastApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-        ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
+        ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
             @Override
             public String getFilename() {
                 return file.getOriginalFilename();
             }
         };
 
-        LinkedHashMap<String, Object> body = new LinkedHashMap<>();
-        body.put("file", resource);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", fileResource);  // ✅ key 이름은 FastAPI에서 file= 로 받기 때문
 
-        HttpEntity<LinkedHashMap<String, Object>> request = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = restTemplate.postForEntity(
-                fastApiUrl, request, String.class
+                fastApiUrl,
+                requestEntity,
+                String.class
         );
 
-        return response.getBody(); // JSON 문자열 그대로 리턴
+        return response.getBody();  // raw JSON 문자열 반환
     }
 }
