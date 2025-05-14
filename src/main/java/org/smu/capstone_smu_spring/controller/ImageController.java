@@ -8,14 +8,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @RestController
 @RequestMapping("/api")
 public class ImageController {
 
     @Autowired
     private FastApiClient fastApiClient;
-
+    private static final Logger logger = LoggerFactory.getLogger(ImageController.class);
     @Autowired
     private GptService gptService;
 
@@ -25,20 +28,23 @@ public class ImageController {
 
         try {
             FastApiResponse result = fastApiClient.sendToFastApi(file);
-            String category = result.getCategory(); // ✅ 변경됨
-            String guide = result.getGuide();       // ✅ 변경됨
 
-            if (category == null) category = "미분류";
-            if (guide == null) guide = "정보 없음";
+            String category = result.getCategory();
+            String guide = result.getGuide();
 
-            return ResponseEntity.ok(Map.of(
-                    "category", category,
-                    "guide", guide
-            ));
+            logger.info("📥 FastAPI 응답 수신: category = {}, guide = {}", category, guide);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("category", category != null ? category : "미분류");
+            response.put("guide", guide != null ? guide : "정보 없음");
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "처리 중 오류 발생: " + e.getMessage()));
+            logger.error("❌ FastAPI 통신 중 예외 발생", e);
+
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "처리 중 오류 발생: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
         }
     }
 }
