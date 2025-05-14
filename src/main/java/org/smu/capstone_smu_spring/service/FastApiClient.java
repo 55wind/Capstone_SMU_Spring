@@ -1,15 +1,13 @@
 package org.smu.capstone_smu_spring.service;
 
-import org.smu.capstone_smu_spring.dto.FastApiResponse;
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.LinkedHashMap;
 
 @Service
 public class FastApiClient {
@@ -17,41 +15,26 @@ public class FastApiClient {
     private final RestTemplate restTemplate = new RestTemplate();
     private final String fastApiUrl = "http://13.238.218.99:8000/predict";
 
-    public FastApiResponse sendToFastApi(MultipartFile file) throws IOException {
-        System.out.println("📤 [FastApiClient] file: " + file.getOriginalFilename());
-
+    public String sendToFastApiRaw(MultipartFile file) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-        LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
+        ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
+            @Override
+            public String getFilename() {
+                return file.getOriginalFilename();
+            }
+        };
 
-        HttpEntity<LinkedMultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+        LinkedHashMap<String, Object> body = new LinkedHashMap<>();
+        body.put("file", resource);
 
-        ResponseEntity<FastApiResponse> response = restTemplate.postForEntity(
-                fastApiUrl, request, FastApiResponse.class
+        HttpEntity<LinkedHashMap<String, Object>> request = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                fastApiUrl, request, String.class
         );
 
-        return response.getBody();
-    }
-
-    // 내부 클래스
-    private static class MultipartInputStreamFileResource extends InputStreamResource {
-        private final String filename;
-
-        public MultipartInputStreamFileResource(InputStream inputStream, String filename) {
-            super(inputStream);
-            this.filename = filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return this.filename;
-        }
-
-        @Override
-        public long contentLength() {
-            return -1;
-        }
+        return response.getBody(); // JSON 문자열 그대로 리턴
     }
 }

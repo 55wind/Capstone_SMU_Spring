@@ -1,6 +1,5 @@
 package org.smu.capstone_smu_spring.controller;
 
-import org.smu.capstone_smu_spring.dto.FastApiResponse;
 import org.smu.capstone_smu_spring.service.FastApiClient;
 import org.smu.capstone_smu_spring.service.GptService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,40 +7,46 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.HashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/api")
 public class ImageController {
 
     @Autowired
     private FastApiClient fastApiClient;
-    private static final Logger logger = LoggerFactory.getLogger(ImageController.class);
+
     @Autowired
     private GptService gptService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(
             @RequestParam("file") MultipartFile file) {
-
         try {
-            FastApiResponse result = fastApiClient.sendToFastApi(file);
+            // JSON 문자열 그대로 받기
+            String fastApiJson = fastApiClient.sendToFastApiRaw(file);
 
-            String category = result.getCategory();
-            String guide = result.getGuide();
+            // 문자열 → JSON 파싱
+            JsonNode jsonNode = objectMapper.readTree(fastApiJson);
+            String category = jsonNode.has("category") ? jsonNode.get("category").asText() : "미분류";
+            String guide = jsonNode.has("guide") ? jsonNode.get("guide").asText() : "정보 없음";
 
-            logger.info("📥 FastAPI 응답 수신: category = {}, guide = {}", category, guide);
+            // GPT 활용
+            String gptGuide = gptService.generateGuide(category);
 
             Map<String, String> response = new HashMap<>();
-            response.put("category", category != null ? category : "미분류");
-            response.put("guide", guide != null ? guide : "정보 없음");
+            response.put("category", category);
+            response.put("guide", gptGuide + " (정확도: " + guide + ")");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ FastAPI 통신 중 예외 발생", e);
-
+            e.printStackTrace();
             Map<String, String> error = new HashMap<>();
             error.put("error", "처리 중 오류 발생: " + e.getMessage());
             return ResponseEntity.internalServerError().body(error);
