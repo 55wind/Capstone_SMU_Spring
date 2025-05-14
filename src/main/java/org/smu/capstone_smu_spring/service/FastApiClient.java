@@ -18,12 +18,20 @@ public class FastApiClient {
     private final String fastApiUrl = "http://13.238.218.99:8000/predict"; // <-- EC2 주소로 바꾸기
 
     public FastApiResponse sendToFastApi(String nickname, MultipartFile file) throws IOException {
+        // ✅ nickname null 또는 빈 문자열 체크
+        if (nickname == null || nickname.trim().isEmpty()) {
+            System.err.println("❌ [FastApiClient] nickname이 null이거나 비어 있습니다.");
+            throw new IllegalArgumentException("nickname 값이 유효하지 않습니다.");
+        }
+
+        System.out.println("📤 [FastApiClient] nickname: " + nickname + ", file: " + file.getOriginalFilename());
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new MultipartInputStreamFileResource(file.getInputStream(), file.getOriginalFilename()));
-        body.add("nickname", nickname);
+        body.add("nickname", nickname);  // 정상 nickname 전송
 
         HttpEntity<LinkedMultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -33,7 +41,6 @@ public class FastApiClient {
 
         return response.getBody();
     }
-
     // 내부 클래스
     private static class MultipartInputStreamFileResource extends InputStreamResource {
         private final String filename;
