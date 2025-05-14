@@ -25,8 +25,11 @@ public class ImageController {
 
         try {
             FastApiResponse result = fastApiClient.sendToFastApi(file);
-            String category = result.getResult();
-            String guide = gptService.generateGuide(category);
+            String category = result.getCategory(); // ✅ 변경됨
+            String guide = result.getGuide();       // ✅ 변경됨
+
+            if (category == null) category = "미분류";
+            if (guide == null) guide = "정보 없음";
 
             return ResponseEntity.ok(Map.of(
                     "category", category,

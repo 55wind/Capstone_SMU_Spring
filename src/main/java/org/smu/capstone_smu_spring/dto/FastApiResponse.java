@@ -1,13 +1,22 @@
 package org.smu.capstone_smu_spring.dto;
 
 public class FastApiResponse {
-    private String result;
+    private String category;
+    private String guide;
 
-    public String getResult() {
-        return result;
+    public String getCategory() {
+        return category;
     }
 
-    public void setResult(String result) {
-        this.result = result;
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getGuide() {
+        return guide;
+    }
+
+    public void setGuide(String guide) {
+        this.guide = guide;
     }
 }
