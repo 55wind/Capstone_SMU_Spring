@@ -1,7 +1,13 @@
 package org.smu.capstone_smu_spring.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class FastApiResponse {
+
+    @JsonProperty("category")
     private String category;
+
+    @JsonProperty("guide")
     private String guide;
 
     public String getCategory() {
@@ -18,5 +24,13 @@ public class FastApiResponse {
 
     public void setGuide(String guide) {
         this.guide = guide;
+    }
+
+    @Override
+    public String toString() {
+        return "FastApiResponse{" +
+                "category='" + category + '\'' +
+                ", guide='" + guide + '\'' +
+                '}';
     }
 }
