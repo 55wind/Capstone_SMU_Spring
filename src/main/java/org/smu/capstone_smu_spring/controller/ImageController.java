@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api")
 public class ImageController {
@@ -22,16 +21,14 @@ public class ImageController {
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("nickname") String nickname) {
+            @RequestParam("file") MultipartFile file) {
 
         try {
-            FastApiResponse result = fastApiClient.sendToFastApi(nickname, file);
+            FastApiResponse result = fastApiClient.sendToFastApi(file);
             String category = result.getResult();
             String guide = gptService.generateGuide(category);
 
             return ResponseEntity.ok(Map.of(
-                    "nickname", nickname,
                     "category", category,
                     "guide", guide
             ));
